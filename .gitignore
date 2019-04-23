@@ -13,3 +13,6 @@
 
 #ignore sublime workspace
 *.sublime-workspace
+
+# ignore vscode folder
+.vscode
