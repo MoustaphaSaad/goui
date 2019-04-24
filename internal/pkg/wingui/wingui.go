@@ -5,6 +5,7 @@ package wingui
 import (
 	"syscall"
 	"unsafe"
+	"fmt"
 )
 
 //WinAPI Definitions
@@ -26,8 +27,9 @@ var (
 
 const (
 	//Messages
-	cWM_CLOSE   = 0x0010
-	cWM_DESTROY = 0x0002
+	cWM_CLOSE   = 16
+	cWM_DESTROY = 2
+	cWM_PAINT   = 15
 
 	//Cursor
 	cIDC_ARROW = 32512
@@ -145,6 +147,8 @@ func mainLoop(hwnd syscall.Handle, msg uint32, wparam, lparam uintptr) uintptr {
 		destroyWindow(hwnd)
 	case cWM_DESTROY:
 		postQuitMessage(0)
+	case cWM_PAINT:
+		fmt.Println("Paint")
 	default:
 		return defWindowProc(hwnd, msg, wparam, lparam)
 	}
