@@ -1,7 +1,7 @@
 package img
 
 type Pixel struct {
-	R, G, B, A uint8
+	B, G, R, A uint8
 }
 
 type Image struct {
@@ -10,11 +10,16 @@ type Image struct {
 }
 
 func NewImage(width, height uint) Image {
-	return Image{
+	res := Image{
 		Pixels: make([]Pixel, width*height),
 		Width: width,
 		Height: height,
 	}
+
+	for i := 0; i < len(res.Pixels); i++ {
+		res.Pixels[i].R = 255
+	}
+	return res
 }
 
 func (self *Image) PixelOffset(x, y uint) uint {

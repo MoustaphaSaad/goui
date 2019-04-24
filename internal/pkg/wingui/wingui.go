@@ -6,6 +6,8 @@ import (
 	"syscall"
 	"unsafe"
 	"fmt"
+
+	"github.com/MoustaphaSaad/goui/internal/pkg/img"
 )
 
 //WinAPI Definitions
@@ -23,6 +25,11 @@ var (
 	pPostQuitMessage  = user32.NewProc("PostQuitMessage")
 	pRegisterClassExW = user32.NewProc("RegisterClassExW")
 	pTranslateMessage = user32.NewProc("TranslateMessage")
+	pGetDC            = user32.NewProc("GetDC")
+	pReleaseDC        = user32.NewProc("ReleaseDC")
+
+	gdi32             = syscall.NewLazyDLL("gdi32.dll")
+	pStretchDIBits    = gdi32.NewProc("StretchDIBits")
 )
 
 const (
@@ -49,6 +56,13 @@ const (
 	//Show Commands
 	cSW_SHOW        = 5
 	cSW_USE_DEFAULT = -1
+
+	//Bitmap constants
+	cBI_RGB = 0
+
+	//GDI Constants
+	cDIB_RGB_COLORS = 0
+	cSRCCOPY        = 0x00CC0020
 )
 
 type tWNDCLASSEXW struct {
@@ -79,7 +93,89 @@ type tPOINT struct {
 	x, y int32
 }
 
-func destroyWindow(hwnd syscall.Handle) error {
+type tBITMAPINFOHEADER struct {
+	biSize uint32
+	biWidth, biHeight int32
+	biPlanes, biBitCount int16
+	biCompression, biSizeImage uint32
+	biXPelsPerMeter, biYPelsPerMeter int32
+	biClrUsed, biClrImportant uint32
+}
+
+type tRGBQUAD struct {
+	rgbBlue, rgbGreen, rgbRed, rgbReserved uint8
+}
+
+type tBITMAPINFO struct {
+	bmiHeader tBITMAPINFOHEADER
+	bmiColors tRGBQUAD
+}
+
+type tHWND syscall.Handle
+type tDC syscall.Handle
+
+func blit(dc tDC, buffer img.Image) error {
+	bmiHeader := tBITMAPINFOHEADER{
+		biSize: 0,
+		biWidth: int32(buffer.Width),
+		biHeight: int32(buffer.Height),
+		biPlanes: 1,
+		biBitCount: 32,
+		biCompression: cBI_RGB,
+		biSizeImage: 0,
+		biXPelsPerMeter: 0,
+		biYPelsPerMeter: 0,
+		biClrUsed: 0,
+		biClrImportant: 0,
+	}
+	bmiHeader.biSize = uint32(unsafe.Sizeof(bmiHeader))
+	info := tBITMAPINFO{
+		bmiHeader: bmiHeader,
+		bmiColors: tRGBQUAD {
+			rgbBlue: 0,
+			rgbGreen: 0,
+			rgbRed: 0,
+			rgbReserved: 0,
+		},
+	}
+	r1, _, err := pStretchDIBits.Call(
+		uintptr(dc),
+		uintptr(0),
+		uintptr(0),
+		uintptr(buffer.Width),
+		uintptr(buffer.Height),
+		uintptr(0),
+		uintptr(0),
+		uintptr(buffer.Width),
+		uintptr(buffer.Height),
+		uintptr(unsafe.Pointer(&buffer.Pixels[0])),
+		uintptr(unsafe.Pointer(&info)),
+		cDIB_RGB_COLORS,
+		cSRCCOPY,
+		)
+	if r1 == 0 {
+		return err
+	}
+	return nil
+}
+
+func getDC(hwnd tHWND) (tDC, error) {
+	r1, _, err := pGetDC.Call(uintptr(hwnd))
+	if r1 == 0 {
+		return tDC(0), err
+	}
+	return tDC(r1), nil
+}
+
+func releaseDC(hwnd tHWND, dc tDC) error {
+	r1, _, err := pReleaseDC.Call(uintptr(hwnd), uintptr(dc))
+	if r1 == 0 {
+		return err
+	}
+	return nil
+}
+
+func destroyWindow(hwnd tHWND) error {
 	r1, _, err := pDestroyWindow.Call(uintptr(hwnd))
 	if r1 == 0 {
 		return err
@@ -91,7 +187,7 @@ func postQuitMessage(exitCode int32) {
 	pPostQuitMessage.Call(uintptr(exitCode))
 }
 
-func defWindowProc(hwnd syscall.Handle, msg uint32, wparam, lparam uintptr) uintptr {
+func defWindowProc(hwnd tHWND, msg uint32, wparam, lparam uintptr) uintptr {
 	r1, _, _ := pDefWindowProcW.Call(uintptr(hwnd), uintptr(msg), uintptr(wparam), uintptr(lparam))
 	return uintptr(r1)
 }
@@ -120,7 +216,7 @@ func registerClassEx(wndclass *tWNDCLASSEXW) (uint16, error) {
 	return uint16(r1), nil
 }
 
-func createWindow(className, windowTitle string, style uint32, x, y, width, height int32, parent, menu, instance syscall.Handle) (syscall.Handle, error) {
+func createWindow(className, windowTitle string, style uint32, x, y, width, height int32, parent, menu, instance syscall.Handle) (tHWND, error) {
 	r1, _, err := pCreateWindowExW.Call(
 		uintptr(0),
 		uintptr(unsafe.Pointer(syscall.StringToUTF16Ptr(className))),
@@ -138,26 +234,30 @@ func createWindow(className, windowTitle string, style uint32, x, y, width, heig
 	if r1 == 0 {
 		return 0, err
 	}
-	return syscall.Handle(r1), nil
+	return tHWND(r1), nil
 }
 
 var pi = 0
-func mainLoop(hwnd syscall.Handle, msg uint32, wparam, lparam uintptr) uintptr {
+var blackImage = img.NewImage(1280, 720)
+func mainLoop(hwnd tHWND, msg uint32, wparam, lparam uintptr) uintptr {
 	switch msg {
 	case cWM_CLOSE:
 		destroyWindow(hwnd)
 	case cWM_DESTROY:
 		postQuitMessage(0)
 	case cWM_PAINT:
+		dc, _ := getDC(hwnd)
+		blit(dc, blackImage)
 		fmt.Printf("Paint %v\n", pi)
 		pi++
+		releaseDC(hwnd, dc)
 	default:
 		return defWindowProc(hwnd, msg, wparam, lparam)
 	}
 	return 0
 }
 
-func getMessage(msg *tMSG, hwnd syscall.Handle, msgFilterMin, msgFilterMax uint32) (bool, error) {
+func getMessage(msg *tMSG, hwnd tHWND, msgFilterMin, msgFilterMax uint32) (bool, error) {
 	r1, _, err := pGetMessageW.Call(
 		uintptr(unsafe.Pointer(msg)),
 		uintptr(hwnd),
@@ -183,7 +283,7 @@ type Window struct {
 	Width  uint32
 	Height uint32
 	Title  string
-	Handle syscall.Handle
+	Handle tHWND
 }
 
 //WinGUI API struct
@@ -202,7 +302,7 @@ func (wingui *WinGUI) CreateWindow(title string, width, height uint32) (Window, 
 		Width:  width,
 		Height: height,
 		Title:  title,
-		Handle: syscall.Handle(0),
+		Handle: tHWND(0),
 	}
 
 	instance, err := getModuleHandle()
