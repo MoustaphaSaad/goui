@@ -141,6 +141,7 @@ func createWindow(className, windowTitle string, style uint32, x, y, width, heig
 	return syscall.Handle(r1), nil
 }
 
+var pi = 0
 func mainLoop(hwnd syscall.Handle, msg uint32, wparam, lparam uintptr) uintptr {
 	switch msg {
 	case cWM_CLOSE:
@@ -148,7 +149,8 @@ func mainLoop(hwnd syscall.Handle, msg uint32, wparam, lparam uintptr) uintptr {
 	case cWM_DESTROY:
 		postQuitMessage(0)
 	case cWM_PAINT:
-		fmt.Println("Paint")
+		fmt.Printf("Paint %v\n", pi)
+		pi++
 	default:
 		return defWindowProc(hwnd, msg, wparam, lparam)
 	}
