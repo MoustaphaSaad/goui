@@ -4,6 +4,7 @@ type Pixel struct {
 	B, G, R, A uint8
 }
 
+//Image structure
 type Image struct {
 	Pixels []Pixel
 	Width, Height uint

@@ -6,6 +6,7 @@ import (
 	"syscall"
 	"unsafe"
 	"fmt"
+	"time"
 
 	"github.com/MoustaphaSaad/goui/internal/pkg/img"
 )
@@ -246,11 +247,24 @@ func mainLoop(hwnd tHWND, msg uint32, wparam, lparam uintptr) uintptr {
 	case cWM_DESTROY:
 		postQuitMessage(0)
 	case cWM_PAINT:
+		start := time.Now()
+		for j := uint(0); j < blackImage.Height; j++ {
+			for i := uint(0); i < blackImage.Width; i++ {
+				blackImage.Pixels[i + j * blackImage.Width] = img.Pixel{
+					R: uint8(pi % 255),
+					G: uint8(i % 255),
+					B: uint8(j % 255),
+					A: 255,
+				}
+			}
+		}
 		dc, _ := getDC(hwnd)
 		blit(dc, blackImage)
-		fmt.Printf("Paint %v\n", pi)
+		//fmt.Printf("Paint %v\n", pi)
 		pi++
 		releaseDC(hwnd, dc)
+		end := time.Now()
+		fmt.Println(end.Sub(start))
 	default:
 		return defWindowProc(hwnd, msg, wparam, lparam)
 	}
