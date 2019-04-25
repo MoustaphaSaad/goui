@@ -20,11 +20,11 @@ func mainLoop(window *Window, hwnd tHWND, msg uint32, wparam, lparam uintptr) ui
 	case cWM_PAINT:
 		t0 := time.Now()
 		window.Render(window)
-		t1 := time.Now()
-		fmt.Println(t1.Sub(t0))
 		dc, _ := getDC(hwnd)
 		blit(dc, window.Chain.Front())
 		releaseDC(hwnd, dc)
+		t1 := time.Now()
+		fmt.Println(t1.Sub(t0))
 	default:
 		return defWindowProc(hwnd, msg, wparam, lparam)
 	}

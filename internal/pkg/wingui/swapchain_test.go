@@ -9,11 +9,11 @@ func TestColorPixelConv(t *testing.T) {
 		B: 0,
 		A: 255,
 	}
-	tp := c.toPixel()
+	tp := c.ToPixel()
 	if tp != Pixel(0xFFFF0000) {
 		t.Errorf("%v != %v", c, tp)
 	}
-	tc := tp.toColor()
+	tc := tp.ToColor()
 	if tc != c {
 		t.Errorf("%v != %v", c, tc)
 	}
@@ -24,11 +24,11 @@ func TestColorPixelConv(t *testing.T) {
 		B: 0,
 		A: 255,
 	}
-	tp = c.toPixel()
+	tp = c.ToPixel()
 	if tp != Pixel(0xFFFFFF00) {
 		t.Errorf("%v != %v", c, tp)
 	}
-	tc = tp.toColor()
+	tc = tp.ToColor()
 	if tc != c {
 		t.Errorf("%v != %v", c, tc)
 	}
@@ -39,11 +39,11 @@ func TestColorPixelConv(t *testing.T) {
 		B: 255,
 		A: 255,
 	}
-	tp = c.toPixel()
+	tp = c.ToPixel()
 	if tp != Pixel(0xFFFFFFFF) {
 		t.Errorf("%v != %v", c, tp)
 	}
-	tc = tp.toColor()
+	tc = tp.ToColor()
 	if tc != c {
 		t.Errorf("%v != %v", c, tc)
 	}
@@ -54,11 +54,11 @@ func TestColorPixelConv(t *testing.T) {
 		B: 255,
 		A: 255,
 	}
-	tp = c.toPixel()
+	tp = c.ToPixel()
 	if tp != Pixel(0xFF0000FF) {
 		t.Errorf("%v != %v", c, tp)
 	}
-	tc = tp.toColor()
+	tc = tp.ToColor()
 	if tc != c {
 		t.Errorf("%v != %v", c, tc)
 	}

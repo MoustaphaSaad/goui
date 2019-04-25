@@ -32,7 +32,7 @@ func (b Buffer) Clear() {
 }
 
 //toColor converts from a Pixel to Color
-func (p Pixel) toColor() Color {
+func (p Pixel) ToColor() Color {
 	return Color{
 		B: uint8(p),
 		G: uint8(p >> 8),
@@ -42,18 +42,18 @@ func (p Pixel) toColor() Color {
 }
 
 //toPixel converts from a Color to Pixel
-func (c Color) toPixel() Pixel {
+func (c Color) ToPixel() Pixel {
 	return Pixel(uint32(c.B) | uint32(c.G)<<8 | uint32(c.R)<<16 | uint32(c.A)<<24)
 }
 
 //ColorGet a specific pixel of the buffer
 func (b Buffer) ColorGet(x, y uint32) Color {
-	return b.Pixels[x + y * b.Width].toColor()
+	return b.Pixels[x + y * b.Width].ToColor()
 }
 
 //ColorSet a specific pixel of the buffer
 func (b Buffer) ColorSet(x, y uint32, c Color) {
-	b.Pixels[x + y * b.Width] = c.toPixel()
+	b.Pixels[x + y * b.Width] = c.ToPixel()
 }
 
 //Swapchain which implments double buffering
