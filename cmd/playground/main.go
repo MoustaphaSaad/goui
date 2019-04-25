@@ -8,12 +8,13 @@ import (
 
 func main() {
 	fmt.Println("Hello, World!")
-	api := wingui.NewAPI()
-	win, err := api.CreateWindow("Hello World", 1280, 720)
+	win, err := wingui.CreateWindow("Hello World", 1280, 720)
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
 
-	api.Exec(&win)
+	for win.Running {
+		win.Poll()
+	}
 }
