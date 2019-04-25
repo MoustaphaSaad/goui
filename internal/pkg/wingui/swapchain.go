@@ -25,6 +25,12 @@ func NewBuffer(width, height uint32) Buffer {
 	}
 }
 
+func (b Buffer) Clear() {
+	for i := 0; i < len(b.Pixels); i++ {
+		b.Pixels[i] = Pixel(0)
+	}
+}
+
 //toColor converts from a Pixel to Color
 func (p Pixel) toColor() Color {
 	return Color{
@@ -66,18 +72,22 @@ func NewSwapchain(width, height uint32) *Swapchain {
 	return &res
 }
 
-//Current active buffer of the swap chain
-func (swap *Swapchain) Current() Buffer {
+//Front buffer of the swap chain
+func (swap *Swapchain) Front() Buffer {
 	return swap.buffers[atomic.LoadUint32(&swap.current)]
 }
 
+//Back buffer of the swap chain
+func (swap *Swapchain) Back() Buffer {
+	return swap.buffers[(atomic.LoadUint32(&swap.current) + 1) % 2]
+}
+
 //Swap the buffers and returns the old current buffer
-func (swap *Swapchain) Swap() Buffer {
+func (swap *Swapchain) Swap() {
 	ix := atomic.LoadUint32(&swap.current)
 	for atomic.CompareAndSwapUint32(&swap.current, ix, (ix + 1) % 2) == false {
 		ix = atomic.LoadUint32(&swap.current)
 	}
-	return swap.buffers[ix]
 }
 
 //Resize the buffers of the swap chain

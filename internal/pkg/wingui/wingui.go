@@ -9,7 +9,6 @@ import (
 	"time"
 )
 
-var pi = 0
 func mainLoop(window *Window, hwnd tHWND, msg uint32, wparam, lparam uintptr) uintptr {
 	switch msg {
 	case cWM_CLOSE:
@@ -19,32 +18,20 @@ func mainLoop(window *Window, hwnd tHWND, msg uint32, wparam, lparam uintptr) ui
 		window.Running = false
 		postQuitMessage(0)
 	case cWM_PAINT:
-		start := time.Now()
-
-		buffer := window.chain.Swap()
-		for j := uint32(0); j < buffer.Height; j++ {
-			for i := uint32(0); i < buffer.Width; i++ {
-				buffer.ColorSet(i, j, Color{
-					R: uint8(pi % 255),
-					G: uint8(i % 255),
-					B: uint8(j % 255),
-					A: 255,
-				})
-			}
-		}
+		t0 := time.Now()
+		window.Render(window)
+		t1 := time.Now()
+		fmt.Println(t1.Sub(t0))
 		dc, _ := getDC(hwnd)
-		blit(dc, buffer)
-		//fmt.Printf("Paint %v\n", pi)
-		pi++
+		blit(dc, window.Chain.Front())
 		releaseDC(hwnd, dc)
-		end := time.Now()
-		fmt.Println(end.Sub(start))
 	default:
 		return defWindowProc(hwnd, msg, wparam, lparam)
 	}
 	return 0
 }
 
+type RenderFunc func(window *Window)
 
 //A Window Struct
 type Window struct {
@@ -53,11 +40,12 @@ type Window struct {
 	Title  string
 	Handle tHWND
 	Running bool
-	chain *Swapchain
+	Render RenderFunc
+	Chain *Swapchain
 }
 
 // CreateWindow creates a window in winos
-func CreateWindow(title string, width, height uint32) (*Window, error) {
+func CreateWindow(title string, width, height uint32, r RenderFunc) (*Window, error) {
 	const className = "goui.wingui.window"
 
 	res := &Window{
@@ -66,7 +54,8 @@ func CreateWindow(title string, width, height uint32) (*Window, error) {
 		Title:  title,
 		Handle: tHWND(0),
 		Running: true,
-		chain: NewSwapchain(width, height),
+		Render: r,
+		Chain: NewSwapchain(width, height),
 	}
 
 	instance, err := getModuleHandle()
