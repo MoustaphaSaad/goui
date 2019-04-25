@@ -20,9 +20,9 @@ func render(w *wingui.Window) {
 	buffer.Clear()
 	shader.Circle(ui.Circle{
 		Center: g.Vec2{X: 1280/2, Y: 720/2},
-		Radius: 720/2,
+		Radius: 200/2,
 	})
-	for i := 0; i < 100; i++ {
+	for i := 0; i < 0; i++ {
 		shader.Circle(ui.Circle{
 			Center: g.Vec2{X: float32(rand.Uint32() % w.Width), Y: float32(rand.Uint32() % w.Height)},
 			Radius: float32(rand.Uint32() % 100),

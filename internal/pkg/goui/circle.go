@@ -33,15 +33,15 @@ func (shader *CircleShader) Render(b wingui.Buffer) {
 	for _, c := range shader.circles {
 		jStart := uint32(0)
 		if c.Center.Y > c.Radius {
-			jStart = uint32(c.Center.Y - c.Radius)
+			jStart = uint32(c.Center.Y - c.Radius - 5)
 		}
 
-		jLimit := uint32(c.Center.Y + c.Radius)
+		jLimit := uint32(c.Center.Y + c.Radius + 5)
 		iStart := uint32(0)
 		if c.Center.X > c.Radius {
-			iStart = uint32(c.Center.X - c.Radius)
+			iStart = uint32(c.Center.X - c.Radius - 5)
 		}
-		iLimit := uint32(c.Center.X + c.Radius)
+		iLimit := uint32(c.Center.X + c.Radius + 5)
 
 		// jStart := uint32(0)
 		// jLimit := uint32(b.Height)
@@ -58,7 +58,15 @@ func (shader *CircleShader) Render(b wingui.Buffer) {
 						B: uint8(255 * d),
 						A: uint8(255 * d),
 					}
-					b.Pixels[i + j * b.Width] += c.ToPixel()
+					b.Pixels[i + j * b.Width] = c.ToPixel()
+				} else if d < 1000 {
+					c := wingui.Color{
+						R: uint8(255),
+						G: uint8(0),
+						B: uint8(0),
+						A: uint8(255),
+					}
+					b.ColorSet(i, j, c)
 				}
 			}
 		}
