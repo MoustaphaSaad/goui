@@ -7,9 +7,6 @@ import (
 	"unsafe"
 	"fmt"
 	"time"
-	"sync/atomic"
-
-	"github.com/MoustaphaSaad/goui/internal/pkg/img"
 )
 
 var pi = 0
@@ -24,16 +21,10 @@ func mainLoop(window *Window, hwnd tHWND, msg uint32, wparam, lparam uintptr) ui
 	case cWM_PAINT:
 		start := time.Now()
 
-		ix := atomic.LoadUint32(&window.bufferIndex)
-		bufferCount := uint32(len(window.buffers))
-		for atomic.CompareAndSwapUint32(&window.bufferIndex, ix, (ix + 1) % bufferCount) == false {
-			ix = atomic.LoadUint32(&window.bufferIndex)
-		}
-
-		buffer := window.buffers[ix]
-		for j := uint(0); j < buffer.Height; j++ {
-			for i := uint(0); i < buffer.Width; i++ {
-				buffer.PixelSet(i, j, img.Pixel{
+		buffer := window.chain.Swap()
+		for j := uint32(0); j < buffer.Height; j++ {
+			for i := uint32(0); i < buffer.Width; i++ {
+				buffer.ColorSet(i, j, Color{
 					R: uint8(pi % 255),
 					G: uint8(i % 255),
 					B: uint8(j % 255),
@@ -54,6 +45,7 @@ func mainLoop(window *Window, hwnd tHWND, msg uint32, wparam, lparam uintptr) ui
 	return 0
 }
 
+
 //A Window Struct
 type Window struct {
 	Width  uint32
@@ -61,8 +53,7 @@ type Window struct {
 	Title  string
 	Handle tHWND
 	Running bool
-	buffers [2]img.Image
-	bufferIndex uint32
+	chain *Swapchain
 }
 
 // CreateWindow creates a window in winos
@@ -74,6 +65,8 @@ func CreateWindow(title string, width, height uint32) (*Window, error) {
 		Height: height,
 		Title:  title,
 		Handle: tHWND(0),
+		Running: true,
+		chain: NewSwapchain(width, height),
 	}
 
 	instance, err := getModuleHandle()
@@ -118,13 +111,6 @@ func CreateWindow(title string, width, height uint32) (*Window, error) {
 	if err != nil {
 		return res, err
 	}
-
-	for i := 0; i < len(res.buffers); i++ {
-		res.buffers[i] = img.NewImage(uint(width), uint(height))
-	}
-	res.bufferIndex = 0
-
-	res.Running = true
 
 	return res, nil
 }
