@@ -55,7 +55,7 @@ func (w *Window) Frame() img.Image {
 	for j := uint32(0); j < buffer.Height; j++ {
 		go func(w *Window, b *img.Image, j uint32){
 			for i := uint32(0); i < b.Width; i++ {
-				c := w.Shade(geometry.Vec2{X: float32(i), Y: float32(j)})
+				c := w.Shade(geometry.Vec2{X: float32(i), Y: float32(j)}).Clamp()
 				b.PixelSet(i, j, img.Pixel{
 					R: uint8(float32(255) * c.R),
 					G: uint8(float32(255) * c.G),
@@ -67,19 +67,6 @@ func (w *Window) Frame() img.Image {
 		}(w, &buffer, j)
 	}
 	w.waitGroup.Wait()
-
-	// Single Threaded
-	// for j := uint32(0); j < buffer.Height; j++ {
-	// 	for i := uint32(0); i < buffer.Width; i++ {
-	// 		c := w.Shade(geometry.Vec2{X: float32(i), Y: float32(j)})
-	// 		buffer.PixelSet(i, j, img.Pixel{
-	// 			R: uint8(float32(255) * c.R),
-	// 			G: uint8(float32(255) * c.G),
-	// 			B: uint8(float32(255) * c.B),
-	// 			A: uint8(float32(255) * c.A),
-	// 		})
-	// 	}
-	// }
 
 	w.chain.Swap()
 	return w.chain.Front()
@@ -96,6 +83,9 @@ func (w *Window) Shade(p geometry.Vec2) Color {
 	for _, n := range w.children {
 		if n.Rect().Inside(p) {
 			c = c.Add(n.Shade(p))
+			if c.A >= 1 {
+				break
+			}
 		}
 	}
 	return c

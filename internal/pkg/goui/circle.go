@@ -26,11 +26,20 @@ func (c Circle) Rect() geometry.Rect {
 }
 
 func (c Circle) Shade(p geometry.Vec2) Color {
-	v := p.Sub(c.Center)
+	xDist := p.X - c.Center.X
+	yDist := p.Y - c.Center.Y
 	r2 := c.Radius*c.Radius
-	distance := v.Dot(v) - r2
-	if distance < 0 {
-		return Color{R: 1, G: 1, B: 1, A: 1}
+	dist := xDist*xDist + yDist*yDist - r2
+	dist /= -r2
+	if dist > 0 {
+		return Color{R: dist, G: dist, B: dist, A: dist}
 	}
 	return Color{}
+	// v := p.Sub(c.Center)
+	// r2 := c.Radius*c.Radius
+	// distance := v.Dot(v) - r2
+	// if distance < 0 {
+	// 	return Color{R: 1, G: 1, B: 1, A: 1}
+	// }
+	// return Color{}
 }
