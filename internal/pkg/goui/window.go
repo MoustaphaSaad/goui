@@ -50,6 +50,7 @@ func (w *Window) Frame() img.Image {
 	buffer := w.chain.Back()
 	buffer.Clear()
 	//render
+	// Multi threaded
 	w.waitGroup.Add(int(buffer.Height))
 	for j := uint32(0); j < buffer.Height; j++ {
 		go func(w *Window, b *img.Image, j uint32){
@@ -67,6 +68,7 @@ func (w *Window) Frame() img.Image {
 	}
 	w.waitGroup.Wait()
 
+	// Single Threaded
 	// for j := uint32(0); j < buffer.Height; j++ {
 	// 	for i := uint32(0); i < buffer.Width; i++ {
 	// 		c := w.Shade(geometry.Vec2{X: float32(i), Y: float32(j)})

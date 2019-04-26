@@ -32,7 +32,7 @@ func main() {
 		return
 	}
 
-	for i := 0; i < 100; i++ {
+	for i := 0; i < 10; i++ {
 		win.ChildAdd(ui.NewCircle(geometry.Vec2{
 			X: float32(rand.Uint32()%1280),
 			Y: float32(rand.Uint32()%720),
