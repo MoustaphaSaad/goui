@@ -5,6 +5,8 @@ package wingui
 import (
 	"syscall"
 	"unsafe"
+
+	"github.com/MoustaphaSaad/goui/internal/pkg/img"
 )
 
 //WinAPI Functions
@@ -240,7 +242,7 @@ func dispatchMessage(msg *tMSG) {
 	pDispatchMessageW.Call(uintptr(unsafe.Pointer(msg)))
 }
 
-func blit(dc tDC, buffer Buffer) error {
+func blit(dc tDC, buffer img.Image) error {
 	bmiHeader := tBITMAPINFOHEADER{
 		biSize: 0,
 		biWidth: int32(buffer.Width),

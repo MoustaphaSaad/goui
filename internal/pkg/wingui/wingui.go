@@ -7,6 +7,8 @@ import (
 	"unsafe"
 	"fmt"
 	"time"
+
+	"github.com/MoustaphaSaad/goui/internal/pkg/img"
 )
 
 func mainLoop(window *Window, hwnd tHWND, msg uint32, wparam, lparam uintptr) uintptr {
@@ -19,9 +21,10 @@ func mainLoop(window *Window, hwnd tHWND, msg uint32, wparam, lparam uintptr) ui
 		postQuitMessage(0)
 	case cWM_PAINT:
 		t0 := time.Now()
-		window.Render(window)
+		f := window.Root.Frame()
+		f.FlipVertically()
 		dc, _ := getDC(hwnd)
-		blit(dc, window.Chain.Front())
+		blit(dc, f)
 		releaseDC(hwnd, dc)
 		t1 := time.Now()
 		fmt.Println(t1.Sub(t0))
@@ -31,31 +34,25 @@ func mainLoop(window *Window, hwnd tHWND, msg uint32, wparam, lparam uintptr) ui
 	return 0
 }
 
-type RenderFunc func(window *Window)
+type Framer interface {
+	Frame() img.Image
+}
 
 //A Window Struct
 type Window struct {
-	Width  uint32
-	Height uint32
-	Title  string
 	Handle tHWND
 	Running bool
-	Render RenderFunc
-	Chain *Swapchain
+	Root Framer
 }
 
 // CreateWindow creates a window in winos
-func CreateWindow(title string, width, height uint32, r RenderFunc) (*Window, error) {
+func CreateWindow(title string, width, height uint32, r Framer) (*Window, error) {
 	const className = "goui.wingui.window"
 
 	res := &Window{
-		Width:  width,
-		Height: height,
-		Title:  title,
 		Handle: tHWND(0),
 		Running: true,
-		Render: r,
-		Chain: NewSwapchain(width, height),
+		Root: r,
 	}
 
 	instance, err := getModuleHandle()
