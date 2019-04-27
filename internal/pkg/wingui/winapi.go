@@ -20,6 +20,7 @@ var (
 	pDestroyWindow     = user32.NewProc("DestroyWindow")
 	pDispatchMessageW  = user32.NewProc("DispatchMessageW")
 	pGetMessageW       = user32.NewProc("GetMessageW")
+	pPeekMessageW      = user32.NewProc("PeekMessageW")
 	pLoadCursorW       = user32.NewProc("LoadCursorW")
 	pPostQuitMessage   = user32.NewProc("PostQuitMessage")
 	pRegisterClassExW  = user32.NewProc("RegisterClassExW")
@@ -45,6 +46,10 @@ const (
 
 	//Colors
 	cCOLOR_WINDOW = 5
+
+	//Process Message
+	cPM_NOREMOVE = 0
+	cPM_REMOVE = 1
 
 	//Styles
 	cWS_MAXIMIZE_BOX     = uint32(0x00010000)
@@ -234,6 +239,20 @@ func getMessage(msg *tMSG, hwnd tHWND, msgFilterMin, msgFilterMax uint32) (bool,
 	return int32(r1) != 0, nil
 }
 
+func peekMessage(msg *tMSG, hwnd tHWND, msgFilterMin, msgFilterMax, removeMsg uint32) (bool, error) {
+	r1, _, err := pPeekMessageW.Call(
+		uintptr(unsafe.Pointer(msg)),
+		uintptr(hwnd),
+		uintptr(msgFilterMin),
+		uintptr(msgFilterMax),
+		uintptr(removeMsg),
+	)
+	if int32(r1) == -1 {
+		return false, err
+	}
+	return int32(r1) != 0, nil
+}
+
 func translateMessage(msg *tMSG) {
 	pTranslateMessage.Call(uintptr(unsafe.Pointer(msg)))
 }
@@ -246,7 +265,7 @@ func blit(dc tDC, buffer img.Image) error {
 	bmiHeader := tBITMAPINFOHEADER{
 		biSize: 0,
 		biWidth: int32(buffer.Width),
-		biHeight: int32(buffer.Height),
+		biHeight: -int32(buffer.Height),
 		biPlanes: 1,
 		biBitCount: 32,
 		biCompression: cBI_RGB,

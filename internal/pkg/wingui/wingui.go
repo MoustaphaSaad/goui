@@ -22,7 +22,7 @@ func mainLoop(window *Window, hwnd tHWND, msg uint32, wparam, lparam uintptr) ui
 	case cWM_PAINT:
 		t0 := time.Now()
 		f := window.Root.Frame()
-		f.FlipVertically()
+		// f.FlipVertically()
 		dc, _ := getDC(hwnd)
 		blit(dc, f)
 		releaseDC(hwnd, dc)
@@ -104,7 +104,7 @@ func CreateWindow(title string, width, height uint32, r Framer) (*Window, error)
 //Poll a message from window message queue and dispatch the message procedure
 func (window *Window) Poll() {
 	msg := tMSG{}
-	gotMessage, err := getMessage(&msg, 0, 0, 0)
+	gotMessage, err := peekMessage(&msg, 0, 0, 0, cPM_REMOVE)
 	if err != nil {
 		return
 	}

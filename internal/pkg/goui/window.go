@@ -1,29 +1,28 @@
 package goui
 
 import (
-	"sync"
-
 	"github.com/MoustaphaSaad/goui/internal/pkg/wingui"
 	"github.com/MoustaphaSaad/goui/internal/pkg/geometry"
 	"github.com/MoustaphaSaad/goui/internal/pkg/img"
 )
 
+type Raster struct {
+	X, Y uint32
+	Image img.Image
+}
+
 type Window struct {
-	rect geometry.Rect
-	children []Circle
 	windowHandle *wingui.Window
 	chain *img.Swapchain
-	waitGroup sync.WaitGroup
+
+	//Circles
+	objects []Raster
+	rasterchan chan Raster
 }
 
 func NewWindow(width, height uint32, title string) (*Window, error) {
 	var res Window
 
-	res.rect = geometry.Rect{
-		TopLeft: geometry.Vec2{ X: 0, Y: 0 },
-		BottomRight: geometry.Vec2{ X: float32(width), Y: float32(height) },
-	}
-	res.children = make([]Circle, 0)
 	res.chain = img.NewSwapchain(width, height)
 
 	handle, err := wingui.CreateWindow(title, width, height, &res)
@@ -31,6 +30,35 @@ func NewWindow(width, height uint32, title string) (*Window, error) {
 		return nil, err
 	}
 	res.windowHandle = handle
+
+	res.objects = make([]Raster, 0)
+	res.rasterchan = make(chan Raster, 10)
+
+	go func(w *Window) {
+		for {
+			back := w.chain.Back()
+			front := w.chain.Front()
+			copy(back.Pixels, front.Pixels)
+			raster := <-w.rasterchan
+			for j := uint32(0); j < raster.Image.Height; j++ {
+				for i := uint32(0); i < raster.Image.Width; i++ {
+					bi := i + raster.X
+					bj := j + raster.Y
+					if bi < back.Width && bj < back.Height {
+						c := raster.Image.PixelGet(i, j)
+						pc := back.PixelGet(bi, bj)
+						if uint16(c.R) + uint16(pc.R) > 255 { pc.R = 255 } else { pc.R += c.R }
+						if uint16(c.G) + uint16(pc.G) > 255 { pc.G = 255 } else { pc.G += c.G }
+						if uint16(c.B) + uint16(pc.B) > 255 { pc.B = 255 } else { pc.B += c.B }
+						if uint16(c.A) + uint16(pc.A) > 255 { pc.A = 255 } else { pc.A += c.A }
+						back.PixelSet(bi, bj, pc)
+					}
+				}
+			}
+			w.chain.Swap()
+			// w.objects = append(w.objects, raster)
+		}
+	}(&res)
 
 	return &res, nil
 }
@@ -41,92 +69,30 @@ func (w *Window) Exec() {
 	}
 }
 
-func (w *Window) ChildAdd(c Circle) {
-	w.children = append(w.children, c)
+func (w *Window) Point(x, y, r float32) {
+	go func() {
+		circle := NewCircle(r)
+		raster := Raster{
+			X: uint32(x),
+			Y: uint32(y),
+			Image: img.NewImage(uint32(circle.Rect().Width()), uint32(circle.Rect().Height())),
+		}
+		for j := uint32(0); j < raster.Image.Height; j++ {
+			for i := uint32(0); i < raster.Image.Width; i++ {
+				color := circle.Shade(geometry.Vec2{X: float32(i), Y: float32(j)})
+				raster.Image.PixelSet(i, j, img.Pixel{
+					B: uint8(255.0 * color.B),
+					G: uint8(255.0 * color.G),
+					R: uint8(255.0 * color.R),
+					A: uint8(255.0 * color.A),
+				})
+			}
+		}
+		w.rasterchan <- raster
+	}()
 }
 
 //Imager interface
 func (w *Window) Frame() img.Image {
-	buffer := w.chain.Back()
-	buffer.Clear()
-	//render
-
-	//Single Threaded Object Oriented
-	// for _, n := range w.children {
-	// 	r := n.Rect()
-	// 	iStart, jStart := r.BeginPixel()
-	// 	iLimit, jLimit := r.EndPixel()
-	// 	for j := jStart; j < buffer.Height && j < jLimit; j++ {
-	// 		for i := iStart; i < buffer.Width && i < iLimit; i++ {
-	// 			c := n.Shade(geometry.Vec2{X: float32(i), Y: float32(j)}).Clamp()
-	// 			buffer.PixelSet(i, j, img.Pixel{
-	// 				R: uint8(float32(255) * c.R),
-	// 				G: uint8(float32(255) * c.G),
-	// 				B: uint8(float32(255) * c.B),
-	// 				A: uint8(float32(255) * c.A),
-	// 			})
-	// 		}
-	// 	}
-	// }
-
-	//Multi Threaded Object Oriented
-	// w.waitGroup.Add(len(w.children))
-	// for _, n := range w.children {
-	// 	go func() {
-	// 		r := n.Rect()
-	// 		iStart, jStart := r.BeginPixel()
-	// 		iLimit, jLimit := r.EndPixel()
-	// 		for j := jStart; j < buffer.Height && j < jLimit; j++ {
-	// 			for i := iStart; i < buffer.Width && i < iLimit; i++ {
-	// 				c := n.Shade(geometry.Vec2{X: float32(i), Y: float32(j)}).Clamp()
-	// 				buffer.Pixels[i + j * buffer.Width].B += uint8(float32(255) * c.B)
-	// 				buffer.Pixels[i + j * buffer.Width].G += uint8(float32(255) * c.G)
-	// 				buffer.Pixels[i + j * buffer.Width].R += uint8(float32(255) * c.R)
-	// 				buffer.Pixels[i + j * buffer.Width].A += uint8(float32(255) * c.A)
-	// 			}
-	// 		}
-	// 		w.waitGroup.Done()
-	// 	}()
-	// }
-	// w.waitGroup.Wait()
-
-	// Multi threaded Pixel Oriented
-	w.waitGroup.Add(int(buffer.Height))
-	for j := uint32(0); j < buffer.Height; j++ {
-		go func(w *Window, b *img.Image, j uint32){
-			for i := uint32(0); i < b.Width; i++ {
-				c := w.Shade(geometry.Vec2{X: float32(i), Y: float32(j)}).Clamp()
-				b.PixelSet(i, j, img.Pixel{
-					R: uint8(float32(255) * c.R),
-					G: uint8(float32(255) * c.G),
-					B: uint8(float32(255) * c.B),
-					A: uint8(float32(255) * c.A),
-				})
-			}
-			w.waitGroup.Done()
-		}(w, &buffer, j)
-	}
-	w.waitGroup.Wait()
-
-	w.chain.Swap()
 	return w.chain.Front()
-}
-
-
-//Node Interface
-func (w *Window) Rect() geometry.Rect {
-	return w.rect
-}
-
-func (w *Window) Shade(p geometry.Vec2) Color {
-	var c Color
-	for _, n := range w.children {
-		if n.Rect().Inside(p) {
-			c = c.Add(n.Shade(p))
-			if c.A >= 1 {
-				break
-			}
-		}
-	}
-	return c
 }

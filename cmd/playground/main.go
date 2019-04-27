@@ -9,7 +9,6 @@ import (
 	"runtime/pprof"
 
 	ui "github.com/MoustaphaSaad/goui/internal/pkg/goui"
-	"github.com/MoustaphaSaad/goui/internal/pkg/geometry"
 )
 
 var cpuprofile = flag.String("cpuprofile", "", "write cpu profile to file")
@@ -32,12 +31,12 @@ func main() {
 		return
 	}
 
-	for i := 0; i < 100; i++ {
-		win.ChildAdd(ui.NewCircle(geometry.Vec2{
-			X: float32(rand.Uint32()%1280),
-			Y: float32(rand.Uint32()%720),
-		},
-		float32(rand.Uint32() % 100)))
+	for i := 0; i < 1000; i++ {
+		win.Point(
+			float32(rand.Uint32() % 1280),
+			float32(rand.Uint32() % 720),
+			float32(rand.Uint32() % 50),
+		)
 	}
 
 	win.Exec()
