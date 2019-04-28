@@ -32,7 +32,7 @@ func NewWindow(width, height uint32, title string) (*Window, error) {
 	res.windowHandle = handle
 
 	res.objects = make([]Raster, 0)
-	res.rasterchan = make(chan Raster, 10)
+	res.rasterchan = make(chan Raster, 50)
 
 	go func(w *Window) {
 		for {
@@ -40,6 +40,7 @@ func NewWindow(width, height uint32, title string) (*Window, error) {
 			front := w.chain.Front()
 			copy(back.Pixels, front.Pixels)
 			raster := <-w.rasterchan
+			w.objects = append(w.objects, raster)
 			for j := uint32(0); j < raster.Image.Height; j++ {
 				for i := uint32(0); i < raster.Image.Width; i++ {
 					bi := i + raster.X
@@ -56,7 +57,6 @@ func NewWindow(width, height uint32, title string) (*Window, error) {
 				}
 			}
 			w.chain.Swap()
-			// w.objects = append(w.objects, raster)
 		}
 	}(&res)
 

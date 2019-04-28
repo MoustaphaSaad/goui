@@ -31,7 +31,7 @@ func main() {
 		return
 	}
 
-	for i := 0; i < 1000; i++ {
+	for i := 0; i < 10000; i++ {
 		win.Point(
 			float32(rand.Uint32() % 1280),
 			float32(rand.Uint32() % 720),
