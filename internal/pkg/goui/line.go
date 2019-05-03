@@ -1,0 +1,25 @@
+package goui
+
+import "github.com/MoustaphaSaad/goui/internal/pkg/img"
+
+type line struct {
+	rect
+	a, b V2
+	thickness float32
+	color img.Pixel
+}
+
+func (l line) boundingRect() rect {
+	return l.rect
+}
+
+func (l line) evalColor(p V2) img.Pixel {
+	pa := p.Sub(l.a)
+	ba := l.b.Sub(l.a)
+	h := Clamp(pa.Dot(ba) / ba.Dot(ba), 0, 1)
+	dist := pa.Sub(ba.Scale(h)).LenSqr()
+	if dist < l.thickness*l.thickness {
+		return l.color
+	}
+	return img.Pixel{}
+}

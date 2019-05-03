@@ -11,6 +11,10 @@ import (
 	"github.com/MoustaphaSaad/goui/internal/pkg/img"
 )
 
+type Framer interface {
+	Frame() img.Image
+}
+
 func mainLoop(window *Window, hwnd tHWND, msg uint32, wparam, lparam uintptr) uintptr {
 	switch msg {
 	case cWM_CLOSE:
@@ -22,7 +26,6 @@ func mainLoop(window *Window, hwnd tHWND, msg uint32, wparam, lparam uintptr) ui
 	case cWM_PAINT:
 		t0 := time.Now()
 		f := window.Root.Frame()
-		// f.FlipVertically()
 		dc, _ := getDC(hwnd)
 		blit(dc, f)
 		releaseDC(hwnd, dc)
@@ -32,10 +35,6 @@ func mainLoop(window *Window, hwnd tHWND, msg uint32, wparam, lparam uintptr) ui
 		return defWindowProc(hwnd, msg, wparam, lparam)
 	}
 	return 0
-}
-
-type Framer interface {
-	Frame() img.Image
 }
 
 //A Window Struct
