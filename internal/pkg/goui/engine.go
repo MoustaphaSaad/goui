@@ -6,7 +6,7 @@ import (
 	"github.com/MoustaphaSaad/goui/internal/pkg/img"
 )
 
-const engineDebug = false
+const engineDebug = true
 
 type Engine struct {
 	chain swapchain
@@ -16,6 +16,7 @@ type Engine struct {
 	circles []circle
 	lines []line
 	quads []quad
+	tris []triangle
 
 	wg sync.WaitGroup
 }
@@ -29,7 +30,7 @@ func NewEngine(width, height int) *Engine {
 }
 
 func (e *Engine) FrameBegin() {
-	e.chain.back().Clear(img.Pixel{})
+	e.chain.back().Clear(Color{})
 }
 
 func (e *Engine) shapeRect(s shape) rect {
@@ -40,12 +41,14 @@ func (e *Engine) shapeRect(s shape) rect {
 		return e.lines[s.ix].rect
 	case cSHAPE_QUAD:
 		return e.quads[s.ix].rect
+	case cSHAPE_TRIANGLE:
+		return e.tris[s.ix].rect
 	default:
 		return rect{}
 	}
 }
 
-func (e *Engine) shapeEvalColor(s shape, p V2) img.Pixel {
+func (e *Engine) shapeEvalColor(s shape, p V2) Color {
 	switch(s.kind) {
 	case cSHAPE_CIRCLE:
 		return e.circles[s.ix].evalColor(p)
@@ -53,8 +56,10 @@ func (e *Engine) shapeEvalColor(s shape, p V2) img.Pixel {
 		return e.lines[s.ix].evalColor(p)
 	case cSHAPE_QUAD:
 		return e.quads[s.ix].evalColor(p)
+	case cSHAPE_TRIANGLE:
+		return e.tris[s.ix].evalColor(p)
 	default:
-		return img.Pixel{}
+		return Color{}
 	}
 }
 
@@ -74,22 +79,22 @@ func (e *Engine) addShapeToTree(q *quadnode, s shape) {
 func (e *Engine) debugTree(b img.Image, q *quadnode) {
 	for i := int(q.min.X); i < int(q.max.X); i++ {
 		ix := b.PixelOffset(i, int(q.min.Y))
-		b.Pixels[ix] = b.Pixels[ix].Add(img.Pixel{R:20,A:20})
+		b.Pixels[ix] = b.Pixels[ix].Add(Color{R:20,A:20})
 	}
 
 	for i := int(q.min.X); i < int(q.max.X); i++ {
 		ix := b.PixelOffset(i, int(q.max.Y - 1))
-		b.Pixels[ix] = b.Pixels[ix].Add(img.Pixel{R:20,A:20})
+		b.Pixels[ix] = b.Pixels[ix].Add(Color{R:20,A:20})
 	}
 
 	for j := int(q.min.Y); j < int(q.max.Y); j++ {
 		ix := b.PixelOffset(int(q.min.X), j)
-		b.Pixels[ix] = b.Pixels[ix].Add(img.Pixel{R:20,A:20})
+		b.Pixels[ix] = b.Pixels[ix].Add(Color{R:20,A:20})
 	}
 
 	for j := int(q.min.Y); j < int(q.max.Y); j++ {
 		ix := b.PixelOffset(int(q.max.X - 1), j)
-		b.Pixels[ix] = b.Pixels[ix].Add(img.Pixel{R:20,A:20})
+		b.Pixels[ix] = b.Pixels[ix].Add(Color{R:20,A:20})
 	}
 
 	if q.topLeft != nil { e.debugTree(b, q.topLeft) }
@@ -116,7 +121,7 @@ func (e *Engine) FrameEnd() img.Image {
 
 // Drawing Functions
 
-func (e *Engine) DrawCircle(center V2, radius float32, color img.Pixel) {
+func (e *Engine) DrawCircle(center V2, radius float32, color Color) {
 	var s circle
 	s.center = center
 	s.radius = radius
@@ -130,7 +135,7 @@ func (e *Engine) DrawCircle(center V2, radius float32, color img.Pixel) {
 	})
 }
 
-func (e *Engine) DrawLine(a, b V2, thickness float32, c img.Pixel) {
+func (e *Engine) DrawLine(a, b V2, thickness float32, c Color) {
 	var s line
 	s.a = a
 	s.b = b
@@ -145,7 +150,7 @@ func (e *Engine) DrawLine(a, b V2, thickness float32, c img.Pixel) {
 	})
 }
 
-func (e *Engine) DrawQuad(topLeft V2, size V2, c img.Pixel) {
+func (e *Engine) DrawQuad(topLeft V2, size V2, c Color) {
 	var s quad
 	a := topLeft
 	b := topLeft.Add(size)
@@ -156,5 +161,20 @@ func (e *Engine) DrawQuad(topLeft V2, size V2, c img.Pixel) {
 	e.addShapeToTree(e.tree.root, shape{
 		kind: cSHAPE_QUAD,
 		ix: len(e.quads) - 1,
+	})
+}
+
+func (e *Engine) DrawTriangle(a, b, c V2, color Color) {
+	var s triangle
+	s.min = a.MinV2(b).MinV2(c)
+	s.max = a.MaxV2(b).MaxV2(c)
+	s.p0 = a
+	s.p1 = b
+	s.p2 = c
+	s.color = color
+	e.tris = append(e.tris, s)
+	e.addShapeToTree(e.tree.root, shape{
+		kind: cSHAPE_TRIANGLE,
+		ix: len(e.tris) - 1,
 	})
 }

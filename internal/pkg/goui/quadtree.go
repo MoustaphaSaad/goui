@@ -1,11 +1,10 @@
 package goui
 
-import "github.com/MoustaphaSaad/goui/internal/pkg/img"
-
 const (
 	cSHAPE_CIRCLE = iota
 	cSHAPE_LINE
 	cSHAPE_QUAD
+	cSHAPE_TRIANGLE
 )
 
 type shape struct {
@@ -38,7 +37,7 @@ func (q *quadnode) raster(e *Engine) {
 				ix := b.PixelOffset(i, j)
 				b.Pixels[ix] = b.Pixels[ix].Add(e.shapeEvalColor(s, V2{float32(i), float32(j)}))
 				if engineDebug {
-					b.Pixels[ix] = b.Pixels[ix].Add(img.Pixel{R:50,A:50})
+					b.Pixels[ix] = b.Pixels[ix].Add(Color{R:50,A:50})
 				}
 			}
 		}
