@@ -6,17 +6,11 @@ import (
 	"github.com/MoustaphaSaad/goui/internal/pkg/img"
 )
 
-const engineDebug = true
+const engineDebug = false
 
 type Engine struct {
 	chain swapchain
-	aspectRatio float32
 	tree quadtree
-
-	circles []circle
-	lines []line
-	quads []quad
-	tris []triangle
 
 	wg sync.WaitGroup
 }
@@ -24,7 +18,6 @@ type Engine struct {
 func NewEngine(width, height int) *Engine {
 	var e Engine
 	e.chain = newSwapChain(width, height)
-	e.aspectRatio = float32(width)/float32(height)
 	e.tree = newQuadTree(&e, float32(width), float32(height), float32(width/32))
 	return &e
 }
@@ -33,43 +26,13 @@ func (e *Engine) FrameBegin() {
 	e.chain.back().Clear(Color{})
 }
 
-func (e *Engine) shapeRect(s shape) rect {
-	switch(s.kind) {
-	case cSHAPE_CIRCLE:
-		return e.circles[s.ix].rect
-	case cSHAPE_LINE:
-		return e.lines[s.ix].rect
-	case cSHAPE_QUAD:
-		return e.quads[s.ix].rect
-	case cSHAPE_TRIANGLE:
-		return e.tris[s.ix].rect
-	default:
-		return rect{}
-	}
-}
-
-func (e *Engine) shapeEvalColor(s shape, p V2) Color {
-	switch(s.kind) {
-	case cSHAPE_CIRCLE:
-		return e.circles[s.ix].evalColor(p)
-	case cSHAPE_LINE:
-		return e.lines[s.ix].evalColor(p)
-	case cSHAPE_QUAD:
-		return e.quads[s.ix].evalColor(p)
-	case cSHAPE_TRIANGLE:
-		return e.tris[s.ix].evalColor(p)
-	default:
-		return Color{}
-	}
-}
-
-func (e *Engine) addShapeToTree(q *quadnode, s shape) {
+func (e *Engine) addShapeToTree(q *quadnode, s Shape) {
 	if q.isLeaf() {
 		e.wg.Add(1)
 		q.shapeChan <- s
 		return
 	}
-	r := e.shapeRect(s)
+	r := s.Rect()
 	if q.topLeft.intersects(r) { e.addShapeToTree(q.topLeft, s) }
 	if q.topRight.intersects(r) { e.addShapeToTree(q.topRight, s) }
 	if q.bottomLeft.intersects(r) { e.addShapeToTree(q.bottomLeft, s) }
@@ -111,9 +74,6 @@ func (e *Engine) FrameEnd() img.Image {
 	}
 
 	e.wg.Wait()
-	e.circles = e.circles[:0]
-	e.lines = e.lines[:0]
-
 	e.chain.swap()
 
 	return buffer
@@ -122,59 +82,43 @@ func (e *Engine) FrameEnd() img.Image {
 // Drawing Functions
 
 func (e *Engine) DrawCircle(center V2, radius float32, color Color) {
-	var s circle
-	s.center = center
-	s.radius = radius
-	s.color = color
-	s.min = center.Sub(V2{radius, radius})
-	s.max = center.Add(V2{radius, radius})
-	e.circles = append(e.circles, s)
-	e.addShapeToTree(e.tree.root, shape{
-		kind: cSHAPE_CIRCLE,
-		ix: len(e.circles) - 1,
-	})
+	var shape circle
+	shape.center = center
+	shape.radius = radius
+	shape.color = color
+	shape.min = center.Sub(V2{radius, radius})
+	shape.max = center.Add(V2{radius, radius})
+	e.addShapeToTree(e.tree.root, shape)
 }
 
 func (e *Engine) DrawLine(a, b V2, thickness float32, c Color) {
-	var s line
-	s.a = a
-	s.b = b
-	s.thickness = thickness
-	s.color = c
-	s.min = a.MinV2(b).Sub(V2{thickness, thickness})
-	s.max = a.MaxV2(b).Add(V2{thickness, thickness})
-	e.lines = append(e.lines, s)
-	e.addShapeToTree(e.tree.root, shape{
-		kind: cSHAPE_LINE,
-		ix: len(e.lines) - 1,
-	})
+	var shape line
+	shape.a = a
+	shape.b = b
+	shape.thickness = thickness
+	shape.color = c
+	shape.min = a.MinV2(b).Sub(V2{thickness, thickness})
+	shape.max = a.MaxV2(b).Add(V2{thickness, thickness})
+	e.addShapeToTree(e.tree.root, shape)
 }
 
 func (e *Engine) DrawQuad(topLeft V2, size V2, c Color) {
-	var s quad
+	var shape quad
 	a := topLeft
 	b := topLeft.Add(size)
-	s.min = a.MinV2(b)
-	s.max = a.MaxV2(b)
-	s.color = c
-	e.quads = append(e.quads, s)
-	e.addShapeToTree(e.tree.root, shape{
-		kind: cSHAPE_QUAD,
-		ix: len(e.quads) - 1,
-	})
+	shape.min = a.MinV2(b)
+	shape.max = a.MaxV2(b)
+	shape.color = c
+	e.addShapeToTree(e.tree.root, shape)
 }
 
 func (e *Engine) DrawTriangle(a, b, c V2, color Color) {
-	var s triangle
-	s.min = a.MinV2(b).MinV2(c)
-	s.max = a.MaxV2(b).MaxV2(c)
-	s.p0 = a
-	s.p1 = b
-	s.p2 = c
-	s.color = color
-	e.tris = append(e.tris, s)
-	e.addShapeToTree(e.tree.root, shape{
-		kind: cSHAPE_TRIANGLE,
-		ix: len(e.tris) - 1,
-	})
+	var shape triangle
+	shape.min = a.MinV2(b).MinV2(c)
+	shape.max = a.MaxV2(b).MaxV2(c)
+	shape.p0 = a
+	shape.p1 = b
+	shape.p2 = c
+	shape.color = color
+	e.addShapeToTree(e.tree.root, shape)
 }

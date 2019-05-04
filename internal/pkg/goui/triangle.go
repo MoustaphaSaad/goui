@@ -6,11 +6,11 @@ type triangle struct {
 	color      Color
 }
 
-func (t triangle) boundingRect() rect {
+func (t triangle) Rect() rect {
 	return t.rect
 }
 
-func (t triangle) evalColor(p V2) Color {
+func (t triangle) Eval(p V2) Color {
 	//calc the edges
 	e0, e1, e2 := t.p1.Sub(t.p0), t.p2.Sub(t.p1), t.p0.Sub(t.p2)
 	//calc distance from each triangle point

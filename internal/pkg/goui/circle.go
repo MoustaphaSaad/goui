@@ -7,13 +7,13 @@ type circle struct {
 	color Color
 }
 
-func (c circle) boundingRect() rect {
+func (c circle) Rect() rect {
 	return c.rect
 }
 
-func (c circle) evalColor(p V2) Color {
+func (c circle) Eval(p V2) Color {
 	dist := p.Sub(c.center).LenSqr() - c.radius*c.radius
-	if dist < 0 {
+	if dist > -5*c.radius && dist < 5*c.radius {
 		return c.color
 	}
 	return Color{}

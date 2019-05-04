@@ -1,16 +1,5 @@
 package goui
 
-const (
-	cSHAPE_CIRCLE = iota
-	cSHAPE_LINE
-	cSHAPE_QUAD
-	cSHAPE_TRIANGLE
-)
-
-type shape struct {
-	kind, ix int
-}
-
 type quadnode struct {
 	rect
 	topLeft *quadnode
@@ -18,7 +7,7 @@ type quadnode struct {
 	bottomLeft *quadnode
 	bottomRight *quadnode
 
-	shapeChan chan shape
+	shapeChan chan Shape
 }
 
 func (q *quadnode) isLeaf() bool {
@@ -35,7 +24,7 @@ func (q *quadnode) raster(e *Engine) {
 		for j := jBegin; j < jEnd; j++ {
 			for i := iBegin; i < iEnd; i++ {
 				ix := b.PixelOffset(i, j)
-				b.Pixels[ix] = b.Pixels[ix].Add(e.shapeEvalColor(s, V2{float32(i), float32(j)}))
+				b.Pixels[ix] = b.Pixels[ix].Add(s.Eval(V2{float32(i), float32(j)}))
 				if engineDebug {
 					b.Pixels[ix] = b.Pixels[ix].Add(Color{R:50,A:50})
 				}
@@ -64,7 +53,7 @@ func newQuadTree(engine *Engine, width, height, limit float32) quadtree {
 
 func (t quadtree) split(q *quadnode) {
 	if q.width() < t.limit && q.height() < t.limit {
-		q.shapeChan = make(chan shape, 64)
+		q.shapeChan = make(chan Shape, 64)
 		go q.raster(t.engine)
 		return
 	}

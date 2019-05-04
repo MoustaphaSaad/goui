@@ -7,11 +7,11 @@ type line struct {
 	color Color
 }
 
-func (l line) boundingRect() rect {
+func (l line) Rect() rect {
 	return l.rect
 }
 
-func (l line) evalColor(p V2) Color {
+func (l line) Eval(p V2) Color {
 	pa := p.Sub(l.a)
 	ba := l.b.Sub(l.a)
 	h := Clamp(pa.Dot(ba) / ba.Dot(ba), 0, 1)
