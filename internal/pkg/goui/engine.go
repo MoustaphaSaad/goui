@@ -6,7 +6,7 @@ import (
 	"github.com/MoustaphaSaad/goui/internal/pkg/img"
 )
 
-const engineDebug = false
+const engineDebug = true
 
 type Engine struct {
 	chain swapchain

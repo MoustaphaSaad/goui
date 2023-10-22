@@ -1,12 +1,12 @@
 package main
 
 import (
-	"fmt"
 	"flag"
-	"os"
+	"fmt"
 	"log"
-	"runtime/pprof"
 	"math"
+	"os"
+	"runtime/pprof"
 
 	ui "github.com/MoustaphaSaad/goui/internal/pkg/goui"
 	"github.com/MoustaphaSaad/goui/internal/pkg/img"
@@ -14,8 +14,8 @@ import (
 )
 
 const (
-	windowWidth  = 1280
-	windowHeight = 720
+	windowWidth  = 1920
+	windowHeight = 1080
 )
 
 type Framer struct{
